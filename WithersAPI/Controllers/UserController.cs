@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AutoMapper;
-using WithersAPI.DTO;
-using WithersAPI.Data;
 using WithersAPI.Models;
+using WithersAPI.DTO;
+using WithersAPI.Services.Interfaces;
 
 namespace WithersAPI.Controllers
 {
@@ -11,84 +9,48 @@ namespace WithersAPI.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly WithersContext _context;
-        private readonly IMapper _mapper;
+        private readonly IUserService _userService;
 
-        public UserController(WithersContext context, IMapper mapper)
+        public UserController(IUserService userService)
         {
-            _context = context;
-            _mapper = mapper;
+            _userService = userService;
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<UserResponse>> Get()
-        {
-            var users = _context.Users
-                .Include(u => u.Characters)
-                .ToList();
-
-            var usersDto = _mapper.Map<IEnumerable<UserResponse>>(users);
-            return Ok(usersDto);
-        }
+        public ActionResult<IEnumerable<UserResponse>> Get() =>
+            Ok(_userService.GetAll());
 
         [HttpGet("{id}")]
         public ActionResult<UserResponse> Get(int id)
         {
-            var user = _context.Users
-                .Include(u => u.Characters)
-                .FirstOrDefault(u => u.Id == id);
-
-            if (user == null) return NotFound();
-
-            var userDto = _mapper.Map<UserResponse>(user);
-            return Ok(userDto);
+            var user = _userService.GetById(id);
+            return user == null ? NotFound() : Ok(user);
         }
 
         [HttpPost]
         public ActionResult<UserResponse> Post(User user)
         {
-            if (_context.Users.Any(u => u.Email == user.Email))
-            {
-                return Conflict("E-mail já está em uso.");
-            }
-
-            _context.Users.Add(user);
-            _context.SaveChanges();
-
-            var userDto = _mapper.Map<UserResponse>(user);
-            return CreatedAtAction(nameof(Get), new { id = user.Id }, userDto);
+            if (user == null) return BadRequest();
+            var created = _userService.Create(user);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
         public IActionResult Put(int id, User user)
         {
-            if (id != user.Id) return BadRequest();
-
-            _context.Entry(user).State = EntityState.Modified;
-            _context.SaveChanges();
-            return NoContent();
+            return _userService.Update(id, user) ? NoContent() : BadRequest();
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, UserUpdateDto userDto)
+        public IActionResult Patch(int id, UserUpdateDto dto)
         {
-            var user = _context.Users.Find(id);
-            if (user == null) return NotFound();
-
-            _mapper.Map(userDto, user);
-            _context.SaveChanges();
-            return NoContent();
+            return _userService.PartialUpdate(id, dto) ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var user = _context.Users.Find(id);
-            if (user == null) return NotFound();
-
-            _context.Users.Remove(user);
-            _context.SaveChanges();
-            return NoContent();
+            return _userService.Delete(id) ? NoContent() : NotFound();
         }
     }
 }

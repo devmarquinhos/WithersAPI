@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WithersAPI.Data;
 using WithersAPI.Models;
 using WithersAPI.DTO;
-using AutoMapper;
+using WithersAPI.Services.Interfaces;
 
 namespace WithersAPI.Controllers
 {
@@ -11,73 +9,47 @@ namespace WithersAPI.Controllers
     [ApiController]
     public class CharacterController : ControllerBase
     {
-        private readonly WithersContext _context;
-        private readonly IMapper _mapper;
+        private readonly ICharacterService _characterService;
 
-        public CharacterController(WithersContext context, IMapper mapper)
+        public CharacterController(ICharacterService characterService)
         {
-            _context = context;
-            _mapper = mapper;
+            _characterService = characterService;
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<CharacterResponseDto>> Get()
-        {
-            var characters = _context.Characters.ToList();
-            var charactersDto = _mapper.Map<IEnumerable<CharacterResponseDto>>(characters);
-            return Ok(charactersDto);
-        }
+        public ActionResult<IEnumerable<CharacterResponseDto>> Get() =>
+            Ok(_characterService.GetAll());
 
         [HttpGet("{id}")]
         public ActionResult<CharacterResponseDto> Get(int id)
         {
-            var character = _context.Characters.Find(id);
-            if (character == null) return NotFound();
-
-            var characterDto = _mapper.Map<CharacterResponseDto>(character);
-            return Ok(characterDto);
+            var character = _characterService.GetById(id);
+            return character == null ? NotFound() : Ok(character);
         }
 
         [HttpPost]
         public ActionResult<CharacterResponseDto> Post(Character character)
         {
-            _context.Characters.Add(character);
-            _context.SaveChanges();
-
-            var characterDto = _mapper.Map<CharacterResponseDto>(character);
-            return CreatedAtAction(nameof(Get), new { id = character.Id }, characterDto);
+            var created = _characterService.Create(character);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
         }
 
         [HttpPut("{id}")]
         public IActionResult Put(int id, Character character)
         {
-            if (id != character.Id) return BadRequest();
-
-            _context.Entry(character).State = EntityState.Modified;
-            _context.SaveChanges();
-            return NoContent();
+            return _characterService.Update(id, character) ? NoContent() : BadRequest();
         }
 
         [HttpPatch("{id}")]
-        public IActionResult Patch(int id, CharacterUpdateDto characterDto)
+        public IActionResult Patch(int id, CharacterUpdateDto dto)
         {
-            var character = _context.Characters.Find(id);
-            if (character == null) return NotFound();
-
-            _mapper.Map(characterDto, character);
-            _context.SaveChanges();
-            return NoContent();
+            return _characterService.PartialUpdate(id, dto) ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var character = _context.Characters.Find(id);
-            if (character == null) return NotFound();
-
-            _context.Characters.Remove(character);
-            _context.SaveChanges();
-            return NoContent();
+            return _characterService.Delete(id) ? NoContent() : NotFound();
         }
     }
 }

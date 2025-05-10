@@ -1,11 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using WithersAPI.Data;
+using WithersAPI.Services.Interfaces;
+using WithersAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICharacterService, CharacterService>();
+
 
 builder.Services.AddDbContext<WithersContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
