@@ -3,8 +3,11 @@ using AutoMapper;
 using WithersAPI.DTO;
 using WithersAPI.Data;
 using WithersAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
-// TODO - Generate the migration for Users table
+
+// TODO now we can create users. but tf how the user dont own any of them.
+// TODO THIS IS EXTREMELY IMPORTANT: REVERT THE CHARACTER MODEL ATRIBUTE, SINCE YOU WILL HAVE NULL REGISTERS IN DB (SPECIFICALLY USER ID AND USER COLUMN)
 namespace WithersAPI.Controllers
 {
     [Route("api/v1/users")]
@@ -13,6 +16,7 @@ namespace WithersAPI.Controllers
     {
         private readonly WithersContext _context;
         private readonly IMapper _mapper;
+
         public UserController(WithersContext context, IMapper mapper)
         {
             _context = context;
@@ -20,72 +24,62 @@ namespace WithersAPI.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<User>> Get()
+        public ActionResult<IEnumerable<UserResponse>> Get()
         {
-            return Ok(_context.Users.ToList());
+            var users = _context.Users.Include(u => u.Characters).ToList();
+            var usersDto = _mapper.Map<IEnumerable<UserResponse>>(users);
+            return Ok(usersDto);
         }
 
+
         [HttpGet("{id}")]
-        public ActionResult<User> Get(int id)
+        public ActionResult<UserResponse> Get(int id)
         {
-            var user = _context.Users.Find(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            var user = _context.Users.Include(u => u.Characters).FirstOrDefault(u => u.Id == id);
+            if (user == null) return NotFound();
 
-            return Ok(user);
-
+            var userDto = _mapper.Map<UserResponse>(user);
+            return Ok(userDto);
         }
 
         [HttpPost]
         public ActionResult<User> Post(User user)
         {
             if (_context.Users.Any(u => u.Email == user.Email))
-            {
-                return Conflict("E-mail ja esta em uso.");
-            }
+                return Conflict("E-mail já está em uso.");
 
             _context.Users.Add(user);
             _context.SaveChanges();
-            return CreatedAtAction(nameof(User), new { id = user.Id }, user);
+            return CreatedAtAction(nameof(Get), new { id = user.Id }, user);
         }
 
-        [HttpPut]
+        [HttpPut("{id}")]
         public IActionResult Put(int id, User user)
         {
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
+            if (id != user.Id) return BadRequest();
             _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
             _context.SaveChanges();
             return NoContent();
         }
 
-        [HttpDelete]
-        public IActionResult Delete(int id)
+        [HttpPatch("{id}")]
+        public IActionResult Patch(int id, UserUpdateDto userDto)
         {
             var user = _context.Users.Find(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-            _context.Users.Remove(user);
+            if (user == null) return NotFound();
+
+            _mapper.Map(userDto, user);
             _context.SaveChanges();
             return NoContent();
         }
 
-        [HttpPatch]
-        public IActionResult Patch(int id, UserUpdateDto userDto)
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
         {
             var user = _context.Users.Find(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            _mapper.Map(user, userDto);
+            _context.Users.Remove(user);
             _context.SaveChanges();
             return NoContent();
         }

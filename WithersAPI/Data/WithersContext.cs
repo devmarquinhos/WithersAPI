@@ -9,5 +9,14 @@ namespace WithersAPI.Data
             public DbSet<Character> Characters { get; set; }
             public DbSet<User> Users { get; set; }
 
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
+                modelBuilder.Entity<User>()
+                    .HasMany(u => u.Characters)
+                    .WithOne(c => c.User)
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            }
+
     }
 }

@@ -12,5 +12,8 @@
         public int Intelligence { get; set; }
         public int Wisdom { get; set; }
         public int Charisma { get; set; }
+
+        public int UserId { get; set; }
+        public User? User { get; set; } = null!;
     }
 }

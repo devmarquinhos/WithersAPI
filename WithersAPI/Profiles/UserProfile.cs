@@ -8,8 +8,8 @@ namespace WithersAPI.Profiles
     {
         public UserProfile()
         {
-            CreateMap<UserUpdateDto, User>()
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<User, UserResponse>();
+            CreateMap<Character, CharacterBasicDto>();
         }
     }
 }

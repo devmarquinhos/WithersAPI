@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using WithersAPI.Data;
 using WithersAPI.Models;
 using WithersAPI.DTO;
@@ -12,6 +13,7 @@ namespace WithersAPI.Controllers
     {
         private readonly WithersContext _context;
         private readonly IMapper _mapper;
+
         public CharacterController(WithersContext context, IMapper mapper)
         {
             _context = context;
@@ -19,43 +21,39 @@ namespace WithersAPI.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Character>> Get()
+        public ActionResult<IEnumerable<CharacterResponseDto>> Get()
         {
-            return Ok(_context.Characters.ToList());
-        }
-
-        [HttpPost]
-        public ActionResult<Character> Post(Character character)
-        {
-            _context.Characters.Add(character);
-            _context.SaveChanges();
-            return CreatedAtAction(nameof(Get), new { id = character.Id }, character);
-
+            var characters = _context.Characters.ToList();
+            var charactersDto = _mapper.Map<IEnumerable<CharacterResponseDto>>(characters);
+            return Ok(charactersDto);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Character> Get(int id) {
+        public ActionResult<CharacterResponseDto> Get(int id)
+        {
             var character = _context.Characters.Find(id);
+            if (character == null) return NotFound();
 
-            if (character == null) {
-                return NotFound();
-            }
-            return Ok(character);
+            var characterDto = _mapper.Map<CharacterResponseDto>(character);
+            return Ok(characterDto);
+        }
+
+        [HttpPost]
+        public ActionResult<CharacterResponseDto> Post(Character character)
+        {
+            _context.Characters.Add(character);
+            _context.SaveChanges();
+
+            var characterDto = _mapper.Map<CharacterResponseDto>(character);
+            return CreatedAtAction(nameof(Get), new { id = character.Id }, characterDto);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Put(int id, Character character) {
+        public IActionResult Put(int id, Character character)
+        {
             if (id != character.Id) return BadRequest();
-            _context.Entry(character).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            _context.SaveChanges();
-            return NoContent();
-        }
 
-        [HttpDelete("{id}")]
-        public IActionResult Delete(int id) {
-            var character = _context.Characters.Find(id);
-            if (character == null) return NotFound();
-            _context.Characters.Remove(character);
+            _context.Entry(character).State = EntityState.Modified;
             _context.SaveChanges();
             return NoContent();
         }
@@ -66,7 +64,18 @@ namespace WithersAPI.Controllers
             var character = _context.Characters.Find(id);
             if (character == null) return NotFound();
 
-            _mapper.Map(character, characterDto);
+            _mapper.Map(characterDto, character);
+            _context.SaveChanges();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            var character = _context.Characters.Find(id);
+            if (character == null) return NotFound();
+
+            _context.Characters.Remove(character);
             _context.SaveChanges();
             return NoContent();
         }
