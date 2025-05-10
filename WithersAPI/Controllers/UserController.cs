@@ -5,9 +5,6 @@ using WithersAPI.Data;
 using WithersAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-
-// TODO now we can create users. but tf how the user dont own any of them.
-// TODO THIS IS EXTREMELY IMPORTANT: REVERT THE CHARACTER MODEL ATRIBUTE, SINCE YOU WILL HAVE NULL REGISTERS IN DB (SPECIFICALLY USER ID AND USER COLUMN)
 namespace WithersAPI.Controllers
 {
     [Route("api/v1/users")]
