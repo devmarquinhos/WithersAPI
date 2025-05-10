@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using WithersAPI.DTO;
 using WithersAPI.Data;
 using WithersAPI.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace WithersAPI.Controllers
 {
@@ -23,16 +23,21 @@ namespace WithersAPI.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<UserResponse>> Get()
         {
-            var users = _context.Users.Include(u => u.Characters).ToList();
+            var users = _context.Users
+                .Include(u => u.Characters)
+                .ToList();
+
             var usersDto = _mapper.Map<IEnumerable<UserResponse>>(users);
             return Ok(usersDto);
         }
 
-
         [HttpGet("{id}")]
         public ActionResult<UserResponse> Get(int id)
         {
-            var user = _context.Users.Include(u => u.Characters).FirstOrDefault(u => u.Id == id);
+            var user = _context.Users
+                .Include(u => u.Characters)
+                .FirstOrDefault(u => u.Id == id);
+
             if (user == null) return NotFound();
 
             var userDto = _mapper.Map<UserResponse>(user);
@@ -40,21 +45,26 @@ namespace WithersAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult<User> Post(User user)
+        public ActionResult<UserResponse> Post(User user)
         {
             if (_context.Users.Any(u => u.Email == user.Email))
+            {
                 return Conflict("E-mail já está em uso.");
+            }
 
             _context.Users.Add(user);
             _context.SaveChanges();
-            return CreatedAtAction(nameof(Get), new { id = user.Id }, user);
+
+            var userDto = _mapper.Map<UserResponse>(user);
+            return CreatedAtAction(nameof(Get), new { id = user.Id }, userDto);
         }
 
         [HttpPut("{id}")]
         public IActionResult Put(int id, User user)
         {
             if (id != user.Id) return BadRequest();
-            _context.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+
+            _context.Entry(user).State = EntityState.Modified;
             _context.SaveChanges();
             return NoContent();
         }
